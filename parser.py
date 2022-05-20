@@ -3,10 +3,18 @@ import csv
 import glob
 
 # set of all the features
-header = ['inbound_firCount', 'inbound_pliCount', 'inbound_nackCount', 'inbound_jitter', 'inbound_framesDropped',
-          'inbound_framesReceivedPerSec',
-          'outbound_firCount', 'outbound_pliCount', 'outbound_nackCount', 'outbound_qpSum', 'outbound_framesSentPerSec',
-          'outbound_frameWidth', 'outbound_frameHeight']
+header = ['remote_inbound_jitter', 'remote_packetsLost/s', 'remote_fractionLost',
+          # 'inbound_jitter', 'inbound_packetsLost', 'inbound_packetsReceived/s', 'inbound_framesReceived/s',
+          # 'inbound_frameWidth', 'inbound_frameHeight', 'inbound_framesPerSecond', 'inbound_framesDropped',
+          # 'inbound_totalInterFrameDelay/framesDecoded_in_ms', 'inbound_firCount',
+          # 'inbound_pliCount', 'inbound_nackCount', 'inbound_qpSum/framesEncoded',
+          # 'inbound_bytesReceived/s',
+          'outbound_packetsSent/s', 'outbound_frameWidth', 'outbound_frameHeight',
+          'outbound_framesPerSecond', 'outbound_framesSent/s',
+          'outbound_totalPacketSentDelay/packetsSent_in_ms', 'outbound_firCount/s',
+          # 'outbound_pliCount',
+          'outbound_bytesSent/s', 'outbound_nackCount/s', 'outbound_qpSum/framesEncoded'
+          ]
 
 
 def preprocess(input_key, data_type=0):
@@ -24,13 +32,16 @@ def preprocess(input_key, data_type=0):
 
 def parse_directory(ip_directory_path, op_directory_path):
     file_names = glob.glob(ip_directory_path + "*/*.txt")
-    counter = 1
+    # file_names = glob.glob(ip_directory_path + "*.txt")
 
     for file_name in file_names:
         print("processing file_name = " + file_name)
-        parse_file(file_name, op_directory_path + str(counter) + "_features" + ".csv")
-        # write_features(op_directory_path + counter + "_features" + ".csv")
-        counter += 1
+
+        file_name_split = file_name.split('/')
+        json_file_split = file_name_split[-1].split('.')
+        output_file_path = op_directory_path + file_name_split[-2] + '_' + json_file_split[0] + "_features" + ".csv"
+
+        parse_file(file_name, output_file_path)
 
 
 def parse_file(file_path, output_file_path):
@@ -40,20 +51,36 @@ def parse_file(file_path, output_file_path):
 
     json = js.loads(json_string)
 
-    inbound_firCount = None
-    inbound_pliCount = None
-    inbound_nackCount = None
-    inbound_jitter = None
-    inbound_framesDropped = None
-    inbound_framesReceivedPerSec = None
+    remote_inbound_jitter = None
+    remote_packetsLost_per_sec = None
+    remote_fractionLost = None
 
-    outbound_firCount = None
-    outbound_pliCount = None
-    outbound_nackCount = None
-    outbound_qpSum = None
+    # inbound_jitter = None
+    # inbound_packetsLost = None
+    # inbound_packetsReceived_per_sec = None
+    # inbound_framesReceived_per_sec = None
+    # inbound_frameWidth = None
+    # inbound_frameHeight = None
+    # inbound_framesPerSecond = None
+    # inbound_framesDropped = None
+    # inbound_totalInterFrameDelay_framesDecoded_in_ms = None
+    # inbound_firCount = None
+    # inbound_pliCount = None
+    # inbound_nackCount = None
+    # inbound_qpSum_framesDecoded = None
+    # inbound_bytesReceived_per_sec = None
+
+    outbound_packetsSent_per_sec = None
     outbound_frameWidth = None
     outbound_frameHeight = None
-    outbound_framesSentPerSec = None
+    outbound_framesPerSecond = None
+    outbound_framesSent_per_sec = None
+    outbound_totalPacketSendDelay_packetsSent_in_ms = None
+    outbound_firCount_per_sec = None
+    # outbound_pliCount = None
+    outbound_bytesSent_per_sec = None
+    outbound_nackCount_per_sec = None
+    outbound_qpSum_framesEncoded = None
 
     for peer_connection in json["PeerConnections"]:
         peer_connection_value = json["PeerConnections"][peer_connection]
@@ -61,184 +88,257 @@ def parse_file(file_path, output_file_path):
 
         for key in peer_stats.items():
             key_name = key[0]
-            if key_name.find("RTCInboundRTPVideoStream") != -1:
-                # print("Inbound parameter name -" + key_name)
-                if key_name.find("firCount") != -1:
-                    # print("Inbound parameter name -" + key_name)
-                    # nonlocal inbound_firCount
-                    inbound_firCount = preprocess(key)
-                elif key_name.find("pliCount") != -1:
-                    # print("Inbound parameter name -" + key_name)
-                    # nonlocal inbound_pliCount
-                    inbound_pliCount = preprocess(key)
-                elif key_name.find("nackCount") != -1:
-                    # print("Inbound parameter name -" + key_name)
-                    # nonlocal inbound_nackCount
-                    inbound_nackCount = preprocess(key)
-                elif key_name.find("jitter") != -1:
-                    # print("Inbound parameter name -" + key_name)
-                    # nonlocal inbound_jitter
-                    inbound_jitter = preprocess(key)
-                elif key_name.find("framesDropped") != -1:
-                    # print("Inbound parameter name -" + key_name)
-                    # nonlocal inbound_framesDropped
-                    inbound_framesDropped = preprocess(key)
-                elif key_name.find("framesReceived/s") != -1:
-                    # print("Inbound parameter name -" + key_name)
-                    # nonlocal inbound_framesReceivedPerSec
-                    inbound_framesReceivedPerSec = preprocess(key)
-
-            elif "RTCOutboundRTPVideoStream" in key_name:
-                # print("Outbound parameter -" + key_name)
-                if key_name.find("firCount") != -1:
-                    # print("Outbound parameter -" + key_name)
-                    # nonlocal outbound_firCount
-                    outbound_firCount = preprocess(key)
-                elif key_name.find("pliCount") != -1:
-                    # print("Outbound parameter -" + key_name)
-                    # nonlocal outbound_pliCount
-                    outbound_pliCount = preprocess(key)
-                elif key_name.find("nackCount") != -1:
-                    # print("Outbound parameter -" + key_name)
-                    # nonlocal outbound_nackCount
-                    outbound_nackCount = preprocess(key)
-                elif key_name.find("qpSum") != -1 and key_name.find("qpSum/framesEncoded") == -1:
-                    # print("Outbound parameter -" + key_name)
-                    # nonlocal outbound_qpSum
-                    outbound_qpSum = preprocess(key)
+            if "RTCOutboundRTPVideoStream" in key_name:
+                if key_name.find("packetsSent/s") != -1:
+                    outbound_packetsSent_per_sec = preprocess(key,1 )
                 elif key_name.find("frameWidth") != -1:
-                    # print("Outbound parameter -" + key_name)
-                    # nonlocal outbound_frameWidth
-                    outbound_frameWidth = preprocess(key)
+                    outbound_frameWidth = preprocess(key,1 )
                 elif key_name.find("frameHeight") != -1:
-                    # print("Outbound parameter -" + key_name)
-                    # nonlocal outbound_frameHeight
-                    outbound_frameHeight = preprocess(key)
+                    outbound_frameHeight = preprocess(key,1 )
+                elif key_name.find("framesPerSecond") != -1:
+                    outbound_framesPerSecond = preprocess(key,1 )
                 elif key_name.find("framesSent/s") != -1:
-                    # print("Outbound parameter -" + key_name)
-                    # nonlocal outbound_framesSentPerSec
-                    outbound_framesSentPerSec = preprocess(key, 1)
+                    outbound_framesSent_per_sec = preprocess(key,1 )
+                elif key_name.find("totalPacketSendDelay/packetsSent_in_ms") != -1:
+                    outbound_totalPacketSendDelay_packetsSent_in_ms = preprocess(key,1 )
+                elif key_name.find("firCount") != -1:
+                    outbound_firCount_per_sec = preprocess(key,1 )
+                # elif key_name.find("pliCount") != -1:
+                #     outbound_pliCount = preprocess(key,1 )
+                elif key_name.find("bytesSent_in_bits/s") != -1:
+                    outbound_bytesSent_per_sec = preprocess(key,1 )
+                elif key_name.find("nackCount") != -1:
+                    outbound_nackCount_per_sec = preprocess(key,1 )
+                elif key_name.find("qpSum/framesEncoded") != -1:
+                    outbound_qpSum_framesEncoded = preprocess(key,1 )
+
+            elif "RTCRemoteInboundRtpVideoStream" in key_name:
+                if key_name.find("jitter") != -1:
+                    remote_inbound_jitter = preprocess(key,1 )
+                elif key_name.find("packetsLost") != -1:
+                    remote_packetsLost_per_sec = preprocess(key,1 )
+                elif key_name.find("fractionLost") != -1:
+                    remote_fractionLost = preprocess(key,1 )
+
+            # elif "RTCInboundRTPVideoStream" in key_name:
+            #     if key_name.find("-jitter") != -1 and key_name[-1] == 'r':
+            #         inbound_jitter = preprocess(key, 1)
+            #     elif key_name.find("packetsLost") != -1:
+            #         inbound_packetsLost = preprocess(key, 1)
+            #     elif key_name.find("packetsReceived/s") != -1:
+            #         inbound_packetsReceived_per_sec = preprocess(key, 1)
+            #     elif key_name.find("framesReceived/s") != -1:
+            #         inbound_framesReceived_per_sec = preprocess(key, 1)
+            #     elif key_name.find("frameWidth") != -1:
+            #         inbound_frameWidth = preprocess(key, 1)
+            #     elif key_name.find("frameHeight") != -1:
+            #         inbound_frameHeight = preprocess(key, 1)
+            #     elif key_name.find("framesPerSecond") != -1:
+            #         inbound_framesPerSecond = preprocess(key, 1)
+            #     elif key_name.find("framesDropped") != -1:
+            #         inbound_framesDropped = preprocess(key, 1)
+            #     elif key_name.find("totalInterFrameDelay/framesDecoded_in_ms") != -1:
+            #         inbound_totalInterFrameDelay_framesDecoded_in_ms = preprocess(key, 1)
+            #     elif key_name.find("firCount") != -1:
+            #         inbound_firCount = preprocess(key, 1)
+            #     elif key_name.find("pliCount") != -1:
+            #         inbound_pliCount = preprocess(key, 1)
+            #     elif key_name.find("nackCount") != -1:
+            #         inbound_nackCount = preprocess(key, 1)
+            #     elif key_name.find("qpSum/framesDecoded") != -1:
+            #         inbound_qpSum_framesDecoded = preprocess(key, 1)
+            #     elif key_name.find("bytesReceived_in_bits/s") != -1:
+            #         inbound_bytesReceived_per_sec = preprocess(key, 1)
 
     with open(output_file_path, 'w', encoding='UTF8') as f:
         writer = csv.writer(f)
         writer.writerow(header)
 
-        for index in range(len(inbound_firCount)):
+        for index in range(len(remote_inbound_jitter)):
             data = []
 
-            if inbound_firCount != None and index < len(inbound_firCount):
-                data.append(inbound_firCount[index])
+            if remote_inbound_jitter != None and index < len(remote_inbound_jitter):
+                data.append(round(remote_inbound_jitter[index], 2))
             else:
                 data.append("None")
 
-            if inbound_pliCount != None and index < len(inbound_pliCount):
-                data.append(inbound_pliCount[index])
+            if remote_packetsLost_per_sec != None and index < len(remote_packetsLost_per_sec):
+                if index == 0:
+                    data.append(0)
+                else:
+                    data.append(round(remote_packetsLost_per_sec[index] - remote_packetsLost_per_sec[index-1]))
             else:
                 data.append("None")
 
-            if inbound_nackCount != None and index < len(inbound_nackCount):
-                data.append(inbound_nackCount[index])
+            if remote_fractionLost != None and index < len(remote_fractionLost):
+                data.append(round(remote_fractionLost[index], 2))
             else:
                 data.append("None")
 
-            if inbound_pliCount != None and index < len(inbound_pliCount):
-                data.append(inbound_pliCount[index])
-            else:
-                data.append("None")
+            # if inbound_jitter != None and index < len(inbound_jitter):
+            #     data.append(inbound_jitter[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_packetsLost != None and index < len(inbound_packetsLost):
+            #     data.append(inbound_packetsLost[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_packetsReceived_per_sec != None and index < len(inbound_packetsReceived_per_sec):
+            #     data.append(inbound_packetsReceived_per_sec[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_framesReceived_per_sec != None and index < len(inbound_framesReceived_per_sec):
+            #     data.append(inbound_framesReceived_per_sec[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_frameWidth != None and index < len(inbound_frameWidth):
+            #     data.append(inbound_frameWidth[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_frameHeight != None and index < len(inbound_frameHeight):
+            #     data.append(inbound_frameHeight[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_framesPerSecond != None and index < len(inbound_framesPerSecond):
+            #     data.append(inbound_framesPerSecond[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_framesDropped != None and index < len(inbound_framesDropped):
+            #     data.append(inbound_framesDropped[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_totalInterFrameDelay_framesDecoded_in_ms != None and index < len(inbound_totalInterFrameDelay_framesDecoded_in_ms):
+            #     data.append(inbound_totalInterFrameDelay_framesDecoded_in_ms[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_firCount != None and index < len(inbound_firCount):
+            #     data.append(inbound_firCount[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_pliCount != None and index < len(inbound_pliCount):
+            #     data.append(inbound_pliCount[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_nackCount != None and index < len(inbound_nackCount):
+            #     data.append(inbound_nackCount[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_qpSum_framesDecoded != None and index < len(inbound_qpSum_framesDecoded):
+            #     data.append(inbound_qpSum_framesDecoded[index])
+            # else:
+            #     data.append("None")
+            #
+            # if inbound_bytesReceived_per_sec != None and index < len(inbound_bytesReceived_per_sec):
+            #     data.append(inbound_bytesReceived_per_sec[index])
+            # else:
+            #     data.append("None")
 
-            if inbound_jitter != None and index < len(inbound_jitter):
-                data.append(inbound_jitter[index])
-            else:
-                data.append("None")
-
-            if inbound_framesDropped != None and index < len(inbound_framesDropped):
-                data.append(inbound_framesDropped[index])
-            else:
-                data.append("None")
-
-            if inbound_framesReceivedPerSec != None and index < len(inbound_framesReceivedPerSec):
-                data.append(inbound_framesReceivedPerSec[index])
-            else:
-                data.append("None")
-
-            if outbound_firCount != None and index < len(outbound_firCount):
-                data.append(outbound_firCount[index])
-            else:
-                data.append("None")
-
-            if outbound_pliCount != None and index < len(outbound_pliCount):
-                data.append(outbound_pliCount[index])
-            else:
-                data.append("None")
-
-            if outbound_firCount != None and index < len(outbound_firCount):
-                data.append(outbound_firCount[index])
-            else:
-                data.append("None")
-
-            if outbound_nackCount != None and index < len(outbound_nackCount):
-                data.append(outbound_nackCount[index])
-            else:
-                data.append("None")
-
-            if outbound_qpSum != None and index < len(outbound_qpSum):
-                data.append(outbound_qpSum[index])
-            else:
-                data.append("None")
-
-            if outbound_framesSentPerSec != None and index < len(outbound_framesSentPerSec):
-                data.append(outbound_framesSentPerSec[index])
+            if outbound_packetsSent_per_sec != None and index < len(outbound_packetsSent_per_sec):
+                data.append(round(outbound_packetsSent_per_sec[index]))
             else:
                 data.append("None")
 
             if outbound_frameWidth != None and index < len(outbound_frameWidth):
-                data.append(outbound_frameWidth[index])
+                data.append(round(outbound_frameWidth[index]))
             else:
                 data.append("None")
 
             if outbound_frameHeight != None and index < len(outbound_frameHeight):
-                data.append(outbound_frameHeight[index])
+                data.append(round(outbound_frameHeight[index]))
             else:
                 data.append("None")
 
+            if outbound_framesPerSecond != None and index < len(outbound_framesPerSecond):
+                data.append(round(outbound_framesPerSecond[index]))
+            else:
+                data.append("None")
+
+            if outbound_framesSent_per_sec != None and index < len(outbound_framesSent_per_sec):
+                data.append(round(outbound_framesSent_per_sec[index], 2))
+            else:
+                data.append("None")
+
+            if outbound_totalPacketSendDelay_packetsSent_in_ms != None and index < len(outbound_totalPacketSendDelay_packetsSent_in_ms):
+                data.append(round(outbound_totalPacketSendDelay_packetsSent_in_ms[index]))
+            else:
+                data.append("None")
+
+            if outbound_firCount_per_sec != None and index < len(outbound_firCount_per_sec):
+                if index == 0:
+                    data.append(0)
+                else:
+                    data.append(round(outbound_firCount_per_sec[index] - outbound_firCount_per_sec[index-1]))
+            else:
+                data.append("None")
+
+            # if outbound_pliCount != None and index < len(outbound_pliCount):
+            #     data.append(outbound_pliCount[index])
+            # else:
+            #     data.append("None")
+
+            if outbound_bytesSent_per_sec != None and index < len(outbound_bytesSent_per_sec):
+                data.append(round(outbound_bytesSent_per_sec[index]))
+            else:
+                data.append("None")
+
+            if outbound_nackCount_per_sec != None and index < len(outbound_nackCount_per_sec):
+                if index == 0:
+                    data.append(0)
+                else:
+                    data.append(round(outbound_nackCount_per_sec[index] - outbound_nackCount_per_sec[index-1]))
+            else:
+                data.append("None")
+
+            if outbound_qpSum_framesEncoded != None and index < len(outbound_qpSum_framesEncoded):
+                data.append(round(outbound_qpSum_framesEncoded[index], 2))
+            else:
+                data.append("None")
+
+            if "None" in data:
+                print("Ending parsing since None encountered")
+                break
+
             writer.writerow(data)
 
-    inbound_firCount = None
-    inbound_pliCount = None
-    inbound_nackCount = None
-    inbound_jitter = None
-    inbound_framesDropped = None
-    inbound_framesReceivedPerSec = None
+    remote_inbound_jitter = None
+    remote_packetsLost_per_sec = None
+    remote_fractionLost = None
 
-    outbound_firCount = None
-    outbound_pliCount = None
-    outbound_nackCount = None
-    outbound_qpSum = None
+    # inbound_jitter = None
+    # inbound_packetsLost = None
+    # inbound_packetsReceived_per_sec = None
+    # inbound_framesReceived_per_sec = None
+    # inbound_frameWidth = None
+    # inbound_frameHeight = None
+    # inbound_framesPerSecond = None
+    # inbound_framesDropped = None
+    # inbound_totalInterFrameDelay_framesDecoded_in_ms = None
+    # inbound_firCount = None
+    # inbound_pliCount = None
+    # inbound_nackCount = None
+    # inbound_qpSum_framesDecoded = None
+    # inbound_bytesReceived_per_sec =  None
+
+    outbound_packetsSent_per_sec = None
     outbound_frameWidth = None
     outbound_frameHeight = None
-    outbound_framesSentPerSec = None
-
-# def write_features(file_path):
-#     with open(file_path, 'w', encoding='UTF8') as f:
-#         writer = csv.writer(f)
-#         writer.writerow(header)
-#
-#         for index in len(inbound_firCount):
-#             data = []
-#
-#             data.append(inbound_firCount[index])
-#             data.append(inbound_pliCount[index])
-#             data.append(inbound_nackCount[index])
-#             data.append(inbound_jitter[index])
-#             data.append(inbound_framesDropped[index])
-#             data.append(inbound_framesReceivedPerSec[index])
-#
-#             data.append(outbound_firCount[index])
-#             data.append(outbound_pliCount[index])
-#             data.append(outbound_nackCount[index])
-#             data.append(outbound_qpSum[index])
-#             data.append(outbound_frameWidth[index])
-#             data.append(outbound_frameHeight[index])
-#             data.append(outbound_framesSentPerSec[index])
-#
-#             writer.writerow(data)
+    outbound_framesPerSecond = None
+    outbound_framesSent_per_sec = None
+    outbound_totalPacketSendDelay_packetsSent_in_ms = None
+    outbound_firCount_per_sec = None
+    # outbound_pliCount = None
+    outbound_bytesSent_per_sec = None
+    outbound_nackCount_per_sec = None
+    outbound_qpSum_framesEncoded = None

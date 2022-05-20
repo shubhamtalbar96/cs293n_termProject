@@ -1,13 +1,9 @@
-# def print_hi(name):
-#     print(f'Hi, {name}')
-#
-#
-# if __name__ == '__main__':
-#     print_hi('PyCharm')
-
-
 from parser import *
 
+# input_directory_name = "/Users/shubhamtalbar/Desktop/Temp/"
+# output_directory_name = "/Users/shubhamtalbar/Desktop/Temp/"
+
+# input_directory_name = "/Users/shubhamtalbar/Desktop/DataSet/shubham/"
 input_directory_name = "/Users/shubhamtalbar/Desktop/DataSet/satyam/"
 output_directory_name = "/Users/shubhamtalbar/Desktop/DataSet/features/"
 
